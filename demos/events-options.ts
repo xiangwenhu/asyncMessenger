@@ -19,7 +19,7 @@ const messenger = new BaseAsyncMessenger({
     }
 });
 
-messenger.subscribe();
+messenger.activate();
 
 const symbolReqType = Symbol.for("reqType");
 
@@ -53,13 +53,13 @@ messenger.invoke<number>({
     data: 111,
 }).then(res => console.log("res:", res))
 
-messenger.on(symbolReqType, function onEvent(data) {
+messenger.addListener(symbolReqType, function onEvent(data) {
     console.log("symbolCccc:", data);
 })
 
 
 // 传统的监听事件
-messenger.on("continuous-event", function onEvent(data) {
+messenger.addListener("continuous-event", function onEvent(data) {
     console.log("continuous-event:", data);
 })
 

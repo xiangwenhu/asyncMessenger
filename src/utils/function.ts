@@ -1,4 +1,4 @@
-import { isType } from ".";
+import { isType } from "./index";
 
 export function isFunction(obj: any) {
     return typeof obj === "function" || isType(obj, "Function");

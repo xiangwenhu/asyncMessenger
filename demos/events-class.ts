@@ -5,12 +5,16 @@ import { listener } from "../src/decorator"
 const emitter = new EventEmitter();
 
 class EmitterAsyncMessenger extends BaseAsyncMessenger {
+
+
+    private name = "mayName";
+
     constructor(options: GlobalReqOptions = {}) {
         super(options);
     }
 
-    subscribe() {
-        console.log("WebViewBridge: subscribe");
+    protected subscribe() {
+        console.log("EmitterAsyncMessenger: subscribe");
         emitter.on("message", this.onMessage);
         return () => {
             emitter.off("message", this.onMessage);
@@ -25,15 +29,17 @@ class EmitterAsyncMessenger extends BaseAsyncMessenger {
         type: "time"
     })
     timeListener(data: BaseResData) {
+        console.log("this.name", this.name);
         console.log("time:data", data)
     }
 }
 
 const emitterAsyncMessenger = new EmitterAsyncMessenger({
-    autoGenerateRequestId: true
+    autoGenerateRequestId: true,
+    autoActive: true
 });
-emitterAsyncMessenger.subscribe();
 
+emitterAsyncMessenger.activate();
 
 
 // setInterval(() => {
@@ -82,7 +88,7 @@ emitterAsyncMessenger.invoke({
 }).then(res => console.log("oneway request res:", res))
 
 
-// emitterAsyncMessenger.on("continuous-event", function onEvent(data) {
+// emitterAsyncMessenger.addListener("continuous-event", function onEvent(data) {
 //     console.log("continuous-event:", data);
 // })
 
