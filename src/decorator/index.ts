@@ -1,4 +1,5 @@
-import { isAsyncFunction, isNormalFunction } from "../utils/function";
+import { isAsyncFunction } from "util/types";
+import { isNormalFunction } from "../utils/function";
 
 interface Options {
     type?: string;
@@ -16,8 +17,8 @@ export function listener(options: Options = {}) {
         // target: method
         // context: demo {"kind":"method","name":"eat","static":false,"private":false,"access":{}}
 
-        if (!(isNormalFunction(target) && isAsyncFunction(target))) {
-            throw new Error("listener Decorator 只能用于装饰class的方法");
+        if (!isNormalFunction(target) && !isAsyncFunction(target)) {
+            throw new Error("listener Decorator 只能用于装饰class的普通方法和异步方法");
         }
 
         if (context.kind !== "method" || !!context.static) {
@@ -30,7 +31,6 @@ export function listener(options: Options = {}) {
                 )}`
             );
         }
-
         context.addInitializer(function () {
             const { type = target.name } = options;
             // this: class instance
