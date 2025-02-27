@@ -18,6 +18,8 @@
         }
 
         function onMessage(ev) {
+            console.log("iframe1: message from index.html",ev.data);
+
             const data = ev.data;
             if (!isObject(data) || typeof data.method !== "string") {
                 return;
@@ -26,8 +28,8 @@
                 case "init":
                     setTimeout(() => {
                         window.parent.postMessage({
-                            scope: "iframe1",
                             method: "init",
+                            scope: "iframe1",
                             data: {
                                 isOk: true,
                                 source: "iframe1"

@@ -11,7 +11,7 @@
 <body>
 
 
-    <script src="./asyncMessenger.js"></script>
+    <script src="./index.js"></script>
     <script src="/socket.io/socket.io.js"></script>
 
     <script>
@@ -37,6 +37,8 @@
             }
         });
 
+        asyncMessenger.activate();
+
         socket.on("connect", () => {
             console.log("connect")
             asyncMessenger.invoke({
@@ -48,7 +50,7 @@
             }).then(res => console.log("index.html:", res, res))
         });
 
-        asyncMessenger.on("timeInfo", function (data) {
+        asyncMessenger.addListener("timeInfo", function (data) {
             console.log("index.html:timeInfo", data);
         });
     </script>

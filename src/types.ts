@@ -1,6 +1,10 @@
 
 export type MessageType = Symbol | string | number;
 
+export interface ListenerOptions {
+    scope?: string;
+}
+
 export interface BaseReqData<R = any> {
     /**
      * 请求的唯一标记
@@ -32,12 +36,12 @@ export type BaseResData<S = any> = Omit<BaseReqData<S>, "requestId"> & {
 }
 
 
-export interface RequestInfo<D = any> {
-    requestId: string | undefined;
-    cb: Function;
+export interface ReqInfo<D = any> {
+    requestId?: string;
+    callback: Function;
     reqData?: D;
     reqTime?: number;
-    scope: string | undefined;
+    scope?: string;
 }
 
 export type Unsubscribe = () => void;
@@ -48,9 +52,9 @@ export interface GlobalReqOptions<R = any, S = any> {
      */
     timeout?: number;
     /**
-     * 是否自动订阅
+     * 是否自动激活
      */
-    autoSubscribe?: boolean;
+    autoActive?: boolean;
     /**
      * 自动生成请求ID, 如果自定义，内置的无效
      */
@@ -72,7 +76,7 @@ export interface GlobalReqOptions<R = any, S = any> {
      */
     logUnhandledEvent?: boolean;
     /**
-     * 订阅
+     * 订阅, 即处理收到的消息
      */
     subscribe?(onMessage?: Function): Unsubscribe;
     /**

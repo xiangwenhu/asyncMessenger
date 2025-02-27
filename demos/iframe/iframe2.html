@@ -18,6 +18,7 @@
         }
 
         function onMessage(ev) {
+            console.log("iframe2: message from index.html", ev.data);
             const data = ev.data;
             if (!isObject(data) || typeof data.method !== "string") {
                 return;
@@ -42,6 +43,17 @@
 
         window.addEventListener("message", onMessage);
 
+
+        // setTimeout(() => {
+        //     window.parent.postMessage({
+        //         method: "init",
+        //         scope: "iframe2",
+        //         data: {
+        //             isOk: true,
+        //             source: "iframe2"
+        //         }
+        //     }, "*")
+        // }, 2000)
 
     </script>
 

@@ -1,34 +1,45 @@
-import { BaseAsyncMessenger, BaseReqData, GlobalReqOptions } from "../src/index";
+import { BaseAsyncMessenger, BaseReqData, BaseResData, GlobalReqOptions } from "../src/index";
 import EventEmitter from "events";
+import { listener } from "../src/decorator"
 
 const emitter = new EventEmitter();
 
-type RequestData  = BaseReqData;
-type ResponseData = RequestData;
-
 class EmitterAsyncMessenger extends BaseAsyncMessenger {
+
+
+    private name = "mayName";
+
     constructor(options: GlobalReqOptions = {}) {
         super(options);
     }
 
-    subscribe() {
-        console.log("WebViewBridge: subscribe");
+    protected subscribe() {
+        console.log("EmitterAsyncMessenger: subscribe");
         emitter.on("message", this.onMessage);
         return () => {
             emitter.off("message", this.onMessage);
         }
     }
 
-    protected request(data: RequestData) {
+    protected request(data: BaseReqData) {
         emitter.emit("message-request", data);
+    }
+
+    @listener({
+        type: "time"
+    })
+    timeListener(data: BaseResData) {
+        console.log("this.name", this.name);
+        console.log("time:data", data)
     }
 }
 
 const emitterAsyncMessenger = new EmitterAsyncMessenger({
-    autoGenerateRequestId: true
+    autoGenerateRequestId: true,
+    autoActive: true
 });
-emitterAsyncMessenger.subscribe();
 
+emitterAsyncMessenger.activate();
 
 
 // setInterval(() => {
@@ -38,11 +49,18 @@ emitterAsyncMessenger.subscribe();
 //     })
 // }, 3000)
 
+setInterval(() => {
+    emitter.emit('message', {
+        type: 'time',
+        data: new Date().toISOString()
+    })
+}, 3000)
 
-emitter.on("message-request", (data: RequestData) => {
+
+emitter.on("message-request", (data: BaseResData) => {
 
     // 单向的，不回发消息
-    if(data.method === "oneway"){
+    if (data.method === "oneway") {
         return;
     }
 
@@ -70,7 +88,7 @@ emitterAsyncMessenger.invoke({
 }).then(res => console.log("oneway request res:", res))
 
 
-// emitterAsyncMessenger.on("continuous-event", function onEvent(data) {
+// emitterAsyncMessenger.addListener("continuous-event", function onEvent(data) {
 //     console.log("continuous-event:", data);
 // })
 
