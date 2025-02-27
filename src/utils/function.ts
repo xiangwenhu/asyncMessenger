@@ -4,29 +4,9 @@ export function isFunction(obj: any) {
     return typeof obj === "function" || isType(obj, "Function");
 }
 
-
-export const AsyncFunctionConstructor: FunctionConstructor = (async function fn() { }).constructor as any;
-
-export const GeneratorFunctionConstructor: FunctionConstructor = (function* () { }).constructor as any;
-
-export const AsyncGeneratorFunctionConstructor: FunctionConstructor = (async function* () { }).constructor as any
-
-
-export function isGeneratorFunction(fn: any): boolean {
-    if (!isFunction(fn)) return false;
-    return fn.constructor === GeneratorFunctionConstructor
-}
-
-
-export function isAsyncGeneratorFunction(fn: any): boolean {
-    if (!isFunction(fn)) return false;
-    return fn.constructor === AsyncGeneratorFunctionConstructor
-}
-
-
 export function isAsyncFunction(fn: any): boolean {
     if (!isFunction(fn)) return false;
-    return fn.constructor === AsyncFunctionConstructor
+    return fn?.constructor?.name === 'AsyncFunction'
 }
 
 export function isArrowFunction(fn: Function): boolean {
