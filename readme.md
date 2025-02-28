@@ -174,7 +174,7 @@ messenger.addListener("continuous-event", function onEvent(data) {
             }).then(res => console.log("index.html:", res, res))
         }
         // 传统的回调调用
-        asyncMessenger.addHandler("timeInfo", function(data){
+        asyncMessenger.addListener("timeInfo", function(data){
             console.log("index.html:timeInfo", data);
         })
 
@@ -220,7 +220,7 @@ socket.on("connect", () => {
     }).then(res => console.log("index.html:", res, res))
 });
 
-asyncMessenger.addHandler("timeInfo", function (data) {
+asyncMessenger.addListener("timeInfo", function (data) {
     console.log("index.html:timeInfo", data);
 });
 
