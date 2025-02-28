@@ -68,7 +68,7 @@ export default class BaseAsyncMessenger<C = any> {
         return this.ctx
     }
 
-    setContext(ctx: C) {
+    setContext(ctx: C | undefined = undefined) {
         this.ctx = ctx
     }
 
