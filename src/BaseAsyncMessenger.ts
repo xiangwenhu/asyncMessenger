@@ -9,7 +9,7 @@ import {
     RequestOptions,
     Unsubscribe,
 } from "./types";
-import * as util from "./util";
+import * as utils from "./utils/index";
 
 const DEFAULT_GLOBAL_OPTIONS: GlobalReqOptions = {
     timeout: 5000,
@@ -28,7 +28,7 @@ type ExtensibleMethod =
     | "getResScope"
     | "onResponse";
 
-export default class BaseAsyncMessenger {
+export default class BaseAsyncMessenger<C = any> {
     private useOptions: boolean = false;
 
     private statistics = {
@@ -47,10 +47,11 @@ export default class BaseAsyncMessenger {
 
     private isActivated: boolean = false;
 
-    constructor(options: GlobalReqOptions = DEFAULT_GLOBAL_OPTIONS) {
+
+    constructor(options: GlobalReqOptions = DEFAULT_GLOBAL_OPTIONS, protected ctx?: C) {
         this.options = { ...DEFAULT_GLOBAL_OPTIONS, ...options };
 
-        if (this.options.subscribe && util.isFunction(this.options.subscribe)) {
+        if (this.options.subscribe && utils.isFunction(this.options.subscribe)) {
             // 绑定参数 this.onMessage， 以方便options使用
             this.subscribe = this.options.subscribe.bind(this, this.onMessage);
             // this.unsubscribe = this.subscribe(this.onMessage)
@@ -61,6 +62,14 @@ export default class BaseAsyncMessenger {
         if (!!options.autoActive) {
             this.activate();
         }
+    }
+
+    getContext(): C | undefined {
+        return this.ctx
+    }
+
+    setContext(ctx: C) {
+        this.ctx = ctx
     }
 
     activate() {
@@ -90,7 +99,7 @@ export default class BaseAsyncMessenger {
      * @returns
      */
     protected getRequestId<D>(_data: BaseReqData<D>): string | undefined {
-        return this.options.autoGenerateRequestId ? util.uuid() : undefined;
+        return this.options.autoGenerateRequestId ? utils.uuid() : undefined;
     }
 
     protected getReqMsgType<D>(data: BaseReqData<D>): MessageType | undefined {
@@ -190,21 +199,22 @@ export default class BaseAsyncMessenger {
             return Promise.reject(new Error(`messageType is undefined`));
         }
         // 获得请求唯一ID
-        if (!util.hasOwnProperty(data, "requestId")) {
+        if (!utils.hasOwnProperty(data, "requestId")) {
             data.requestId = this.getMethod<string>("getRequestId").apply(
                 this,
                 [data]
             );
         }
         const requestId = data.requestId;
+        const request = this.getMethod("request");
         // 只发不收
         if (sendOnly) {
-            this.getMethod("request")(data, requestId, ...args);
+            request.call(this, data, requestId, ...args);
             return Promise.resolve(undefined);
         }
 
         return new Promise((resolve, reject) => {
-            const { run, cancel } = util.delay(undefined, tout);
+            const { run, cancel } = utils.delay(undefined, tout);
             // 超时
             run().then(() => {
                 console.log("请求超时:", messageType, data, requestId);
@@ -231,7 +241,7 @@ export default class BaseAsyncMessenger {
                 scope: data.scope,
             });
             // 调用
-            this.getMethod("request")(data, ...args);
+            request.call(this, data, ...args);
         });
     }
 
@@ -254,7 +264,7 @@ export default class BaseAsyncMessenger {
         this.statistics.timeOutCount++;
     };
 
-    private onError = () => {};
+    private onError = () => { };
 
     private onSuccess = <RD>(
         _messageType: MessageType,

@@ -97,7 +97,7 @@ export interface GlobalReqOptions<R = any, S = any> {
     /**
      * 打开多个被请求方， 比如多个webview
      */
-    getResSope?: (data: BaseResData<S>) => string | string[];
+    getResScope?: (data: BaseResData<S>) => string | string[];
     /**
      * 提供返回后，再处理数据的能力
      */

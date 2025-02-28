@@ -1,5 +1,5 @@
 import { MessageType, ReqInfo } from "./types";
-import { isSameScope } from "./util";
+import { isSameScope } from "./utils/index";
 
 type FindOptions = Partial<Pick<ReqInfo, "scope" | "requestId">>;
 

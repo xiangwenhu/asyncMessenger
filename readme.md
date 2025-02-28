@@ -20,11 +20,16 @@
 ## 源码结构说明
 ```
     src
+        decorator
+            index.ts             监听装饰器
+        utils
+            index                工具方法
+            function             函数相关的工具方法
         BaseAsyncMessenger.ts    核心，基础异步消息处理类，包含：流程控制，主动的Promise类型的通讯
-        index.ts                入口文件
+        DataStore                数据存储
+        index.ts                 入口文件
         PEventMessenger.ts       消息中心，BaseAsyncMessenger继承于他，处理被动的消息。
-        types.ts                类型定义
-        util.ts                 辅助方法
+        types.ts                 类型定义
 ```
 
 
@@ -37,9 +42,8 @@
 
 events.js
 ```js
-import { BaseAsyncMessenger, BaseReqData, GlobalReqOptions } from "../src/index";
 import EventEmitter from "events";
-import { BaseReqData } from "async-Messenger"
+import { BaseReqData } from "async-messenger-js"
 
 const emitter = new EventEmitter();
 
@@ -73,7 +77,7 @@ export default emitter;
 
 messenger.js
 ```js
-import { BaseAsyncMessenger, BaseReqData, GlobalReqOptions } from "async-Messenger";
+import { BaseAsyncMessenger, BaseReqData, GlobalReqOptions } from "async-messenger-js";
 import emitter from "./events";
 
 type RequestData  = BaseReqData;
@@ -97,23 +101,36 @@ class EmitterAsyncMessenger extends BaseAsyncMessenger {
     }
 }
 
-const emitterAsyncMessenger = new EmitterAsyncMessenger();
-emitterAsyncMessenger.subscribe();
+export default new EmitterAsyncMessenger();
+```
+
 
 index.js
 ```js
-import Messenger from "./Messenger";
+import messenger from "./messenger";
 
-// 调用
-emitterAsyncMessenger.invoke({
+asyncMessenger.activate();
+
+
+messenger.invoke({
     method: "cccc",
     data: 111
 }).then(res => console.log("res:", res))
 
-// 传统的监听事件
-emitterAsyncMessenger.addHandler("continuous-event", function onEvent(data) {
+
+messenger.invoke({
+    method: "oneway",
+    data: 111
+}, {
+    sendOnly: true,
+}).then(res => console.log("oneway request res:", res))
+
+
+messenger.addListener("continuous-event", function onEvent(data) {
     console.log("continuous-event:", data);
 })
+
+
 ```
 
 ### iframe
@@ -144,6 +161,8 @@ emitterAsyncMessenger.addHandler("continuous-event", function onEvent(data) {
             }
         });
 
+        asyncMessenger.activate();
+
         iframe1.contentWindow.onload = () => {
             // 异步Promise调用
             asyncMessenger.invoke({
@@ -155,7 +174,7 @@ emitterAsyncMessenger.addHandler("continuous-event", function onEvent(data) {
             }).then(res => console.log("index.html:", res, res))
         }
         // 传统的回调调用
-        asyncMessenger.on("timeInfo", function(data){
+        asyncMessenger.addHandler("timeInfo", function(data){
             console.log("index.html:timeInfo", data);
         })
 
@@ -189,7 +208,7 @@ const asyncMessenger = new AsyncMessenger.BaseAsyncMessenger({
         sendMessage(data);
     }
 });
-
+asyncMessenger.activate();
 socket.on("connect", () => {
     console.log("connect")
     asyncMessenger.invoke({
@@ -201,7 +220,7 @@ socket.on("connect", () => {
     }).then(res => console.log("index.html:", res, res))
 });
 
-asyncMessenger.on("timeInfo", function (data) {
+asyncMessenger.addHandler("timeInfo", function (data) {
     console.log("index.html:timeInfo", data);
 });
 
