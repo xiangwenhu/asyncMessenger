@@ -36,7 +36,11 @@
         return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
     };
 
+    const toString = Object.prototype.toString;
     const { hasOwnProperty: hasOwn } = Object.prototype;
+    function isType(obj, type) {
+        return toString.call(obj) === `[object ${type}]`;
+    }
     function isFunction$1(fn) {
         return typeof fn === 'function';
     }
@@ -83,9 +87,10 @@
     function hasOwnProperty(obj, property) {
         return hasOwn.call(obj, property);
     }
-    function isSameScope(scope1, scope2) {
-        // TODO:
-        return scope1 == scope2;
+    function isSameValue(value1, value2) {
+        if (value1 === null || value1 === undefined)
+            return value1 == value2 || value1 === value2;
+        return value1 == value2;
     }
     function uuid() {
         var d = new Date().getTime();
@@ -108,12 +113,7 @@
             if (!infos) {
                 this.map.set(type, []);
             }
-            this.map.get(type).push({
-                requestId: reqInfo.requestId,
-                reqTime: Date.now(),
-                callback: reqInfo.callback,
-                scope: reqInfo.scope,
-            });
+            this.map.get(type).push(Object.assign(Object.assign({}, reqInfo), { requestTime: Date.now() }));
         }
         remove(type, reqInfo) {
             const infos = this.map.get(type);
@@ -157,16 +157,10 @@
             if (!reqInfos || reqInfos.length === 0) {
                 return undefined;
             }
-            const hasRequestId = typeof requestId === "string" && requestId.trim() !== "";
-            const hasScope = typeof scope === "string" && scope.trim() !== "";
             // 过滤scope
-            if (hasScope) {
-                reqInfos = reqInfos.filter((c) => isSameScope(c === null || c === void 0 ? void 0 : c.scope, scope));
-            }
+            reqInfos = reqInfos.filter((c) => isSameValue(c.scope, scope));
             // 过滤 requestId
-            if (hasRequestId) {
-                reqInfos = reqInfos.filter((c) => c.requestId === requestId);
-            }
+            reqInfos = reqInfos.filter((c) => isSameValue(c.requestId, requestId));
             return reqInfos;
         }
         getOne(messageType, options = {}) {
@@ -174,7 +168,8 @@
             return infos ? infos[0] : undefined;
         }
         has(messageType, options = {}) {
-            return !!this.get(messageType, options);
+            const result = this.get(messageType, options);
+            return !!result && result.length > 0;
         }
         hasType(messageType) {
             return this.map.has(messageType);
@@ -199,6 +194,9 @@
                 this.store.add(type, {
                     callback: listener,
                     scope: options.scope,
+                    context: options.context,
+                    requestOptions: options,
+                    requestData: undefined
                 });
             };
             this.off = (type, listener, options = {}) => {
@@ -209,12 +207,12 @@
             };
             this.emit = (type, data, options = {}) => {
                 const infos = this.store.get(type, options);
-                if (!Array.isArray(infos)) {
+                if (!Array.isArray(infos) || infos.length === 0) {
                     return;
                 }
                 const bInfos = [...infos];
                 bInfos.forEach((info) => {
-                    info.callback(data);
+                    info.callback.call(info.context, data);
                 });
             };
         }
@@ -233,7 +231,8 @@
         logUnhandledEvent: true,
     };
     class BaseAsyncMessenger {
-        constructor(options = DEFAULT_GLOBAL_OPTIONS) {
+        constructor(options = DEFAULT_GLOBAL_OPTIONS, ctx) {
+            this.ctx = ctx;
             this.useOptions = false;
             this.statistics = {
                 reqCount: 0,
@@ -255,32 +254,42 @@
                 return method;
             };
             this.onMessage = (data = {}) => {
+                var _a;
                 const messageType = this.getMethod("getResMsgType")(data);
                 const responseId = this.getMethod("getResponseId")(data);
                 const scope = this.getMethod("getResScope")(data);
                 // 提供自定义助力数据的能力
-                data = this.onResponse(messageType, data);
-                // 内置的成功处理
-                this.onBuiltInResponse(messageType, data, {
+                data = this.onResponse(data);
+                const hasListeners = this.events.has(messageType, {
                     scope,
                 });
+                if (hasListeners) {
+                    // 内置的成功处理
+                    this.onBuiltInResponse(messageType, data, {
+                        scope,
+                    });
+                }
+                const hasResponseId = !!responseId;
                 const reqInfo = this.store.getOne(messageType, {
                     scope,
                     requestId: responseId,
                 });
-                const isInHandlers = this.events.has(messageType);
                 //  AsyncMessenger中没有，PEventMessenger中也没有, 并且开启相关的日志输出
-                if (!reqInfo && !isInHandlers && this.options.logUnhandledEvent) {
+                if (!reqInfo && !hasListeners && this.options.logUnhandledEvent) {
                     this.onError();
-                    console.warn(`未找到category为${messageType},requestId${responseId}的回调信息`);
+                    const infos = [`type=${messageType}`, `scope=${scope}`];
+                    if (hasResponseId)
+                        infos.push(`requestId=${responseId}`);
+                    console.warn(`未找到 ${infos.join(", ")} 的回调信息`);
                     return;
                 }
                 if (!reqInfo)
                     return;
                 this.store.remove(messageType, reqInfo);
                 this.onSuccess(messageType, data);
+                const useResDataOnly = this.options.useResDataOnly || ((_a = reqInfo.requestOptions) === null || _a === void 0 ? void 0 : _a.useResDataOnly);
                 if (reqInfo) {
-                    reqInfo.callback(data);
+                    reqInfo.callback.call(reqInfo.context, useResDataOnly ? data.data : data);
                 }
             };
             this.onTimeout = () => {
@@ -303,6 +312,12 @@
             if (!!options.autoActive) {
                 this.activate();
             }
+        }
+        getContext() {
+            return this.ctx;
+        }
+        setContext(ctx = undefined) {
+            this.ctx = ctx;
         }
         activate() {
             if (this.isActivated)
@@ -342,14 +357,12 @@
         getResScope(data) {
             return data.scope;
         }
-        onResponse(_messageType, data) {
+        onResponse(data) {
             return data;
         }
         invoke(data, reqOptions, ...args) {
             this.statistics.reqCount++;
-            const { timeout = 5000, sendOnly = false, defaultRes = {
-                message: "请求超时",
-            }, } = reqOptions || {};
+            const { timeout = 5000, sendOnly = false, defaultRes } = (reqOptions || {});
             const tout = timeout || this.options.timeout;
             const messageType = this.getMethod("getReqMsgType")(data);
             if (messageType == undefined) {
@@ -360,9 +373,10 @@
                 data.requestId = this.getMethod("getRequestId").apply(this, [data]);
             }
             const requestId = data.requestId;
+            const request = this.getMethod("request");
             // 只发不收
             if (sendOnly) {
-                this.getMethod("request")(data, requestId, ...args);
+                request.call(this, data, requestId, ...args);
                 return Promise.resolve(undefined);
             }
             return new Promise((resolve, reject) => {
@@ -371,13 +385,22 @@
                 run().then(() => {
                     console.log("请求超时:", messageType, data, requestId);
                     this.onTimeout();
-                    if (this.options.clearTimeoutReq) {
-                        this.store.removeOneByOptions(messageType, {
-                            requestId,
-                            scope: data.scope,
-                        });
+                    const options = { requestId, scope: data.scope };
+                    // 启用默认返回值
+                    if (this.options.enableDefaultResponse) {
+                        const reqInfo = this.store.getOne(messageType, options);
+                        // 请求的选项中有定义默认返回值
+                        if ((reqInfo === null || reqInfo === void 0 ? void 0 : reqInfo.requestOptions) && ("defaultRes" in reqInfo.requestOptions)) {
+                            this.store.removeOneByOptions(messageType, options);
+                            return resolve(reqInfo.requestOptions.defaultRes);
+                        }
                     }
-                    reject(Object.assign({ message: "请求超时" }, (defaultRes || {})));
+                    if (this.options.clearTimeoutReq) {
+                        this.store.removeOneByOptions(messageType, options);
+                    }
+                    reject({
+                        message: "请求超时"
+                    });
                 });
                 this.store.add(messageType, {
                     requestId: requestId,
@@ -387,9 +410,12 @@
                         resolve(msg);
                     },
                     scope: data.scope,
+                    context: this,
+                    requestData: data,
+                    requestOptions: reqOptions
                 });
                 // 调用
-                this.getMethod("request")(data, ...args);
+                request.call(this, data, ...args);
             });
         }
         invokeOnly(data, reqOptions, ...args) {
@@ -400,7 +426,7 @@
                 return data;
             }
             // TODO:: 这里可能被串改数据
-            this.events.emit(messageType, data, options);
+            this.events.emit(messageType, Object.assign({}, data), options);
             return data;
         }
         getStatistics() {
@@ -416,21 +442,14 @@
         }
     }
 
-    const toString = Object.prototype.toString;
-    function isType(obj, type) {
-        return toString.call(obj) === `[object ${type}]`;
-    }
-
     function isFunction(obj) {
         return typeof obj === "function" || isType(obj, "Function");
     }
-    const AsyncFunctionConstructor = (function fn() {
-        return __awaiter(this, void 0, void 0, function* () { });
-    }).constructor;
     function isAsyncFunction(fn) {
+        var _a;
         if (!isFunction(fn))
             return false;
-        return fn.constructor === AsyncFunctionConstructor;
+        return ((_a = fn === null || fn === void 0 ? void 0 : fn.constructor) === null || _a === void 0 ? void 0 : _a.name) === 'AsyncFunction';
     }
     function isArrowFunction(fn) {
         if (!isFunction(fn))
@@ -460,12 +479,13 @@
         return false;
     }
 
+    const SymbolHasProxyMethod = Symbol("HasProxyMethod");
     function listener(options = {}) {
         return function (target, context) {
             // target: method
             // context: demo {"kind":"method","name":"eat","static":false,"private":false,"access":{}}
-            if (!(isNormalFunction(target) && isAsyncFunction(target))) {
-                throw new Error("listener Decorator 只能用于装饰class的方法");
+            if (!isNormalFunction(target) && !isAsyncFunction(target)) {
+                throw new Error("listener Decorator 只能用于装饰class的普通方法和异步方法");
             }
             if (context.kind !== "method" || !!context.static) {
                 throw new Error("listener Decorator 只能用于装饰class的实例方法");
@@ -477,7 +497,19 @@
                 const { type = target.name } = options;
                 // this: class instance
                 const classInstance = this;
-                classInstance.addListener(type, target.bind(classInstance));
+                if (hasOwnProperty(target, SymbolHasProxyMethod)) {
+                    return console.warn(`${target === null || target === void 0 ? void 0 : target.name} 已添加装饰listener, 无需重复添加`);
+                }
+                // 
+                Object.defineProperty(target, SymbolHasProxyMethod, {
+                    value: true,
+                    enumerable: false
+                });
+                const listenerOptions = {
+                    scope: options.scope,
+                    context: ('context' in options) ? options.context : classInstance
+                };
+                classInstance.addListener(type, target, listenerOptions);
             });
         };
     }

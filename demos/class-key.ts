@@ -9,10 +9,10 @@ emitter.on("message-request", function (data: BaseReqData) {
             setTimeout(function () {
                 emitter.emit("message", {
                     method: data.method,
-                    requestId: data.requestId,
+                    responseId: data.requestId,
                     data: `res_method1`
                 })
-            }, Math.random() * 2000)
+            }, Math.random() * 1000)
             break;
     }
 })
@@ -46,11 +46,11 @@ emitterAsyncMessenger.invoke({
     method: "method1",
     data: "data2",
     requestId: "key2"
-}).then(res=>console.log("res1_key2", res));
+}).then(res => console.log("res1_key2", res));
 
 emitterAsyncMessenger.invoke({
     method: "method1",
     data: "data1",
     requestId: "key1"
-}).then(res=>console.log("res_key1", res));
+}).then(res => console.log("res_key1", res));
 

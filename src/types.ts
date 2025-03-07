@@ -106,6 +106,11 @@ export interface GlobalReqOptions<R = any, S = any> {
     logUnhandledEvent?: boolean;
 
     /**
+     * 仅仅使用返回数据data部分
+     */
+    useResDataOnly?: boolean;
+
+    /**
      * 订阅, 即处理收到的消息
      */
     subscribe?(onMessage?: Function): Unsubscribe;
@@ -150,4 +155,5 @@ export interface RequestOptions {
     timeout?: number;
     defaultRes?: any;
     sendOnly?: boolean;
+    useResDataOnly?: boolean;
 }

@@ -1,7 +1,6 @@
-import { isAsyncFunction } from "util/types";
-import { isNormalFunction } from "../utils/function";
-import { hasOwnProperty } from "../utils";
-import { ListenerOptions } from "src/types";
+import { isAsyncFunction, isNormalFunction } from "../utils/function";
+import { hasOwnProperty } from "../utils/index";
+import { ListenerOptions } from "../types";
 
 interface Options {
     type?: string;

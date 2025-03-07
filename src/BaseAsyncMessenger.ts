@@ -120,7 +120,7 @@ export default class BaseAsyncMessenger<C = any> {
         return data.scope;
     }
 
-    protected onResponse<RD>(_messageType: MessageType, data: BaseResData<RD>) {
+    protected onResponse<RD>(data: BaseResData<RD>) {
         return data;
     }
 
@@ -147,7 +147,7 @@ export default class BaseAsyncMessenger<C = any> {
         const scope = this.getMethod<string>("getResScope")(data);
 
         // 提供自定义助力数据的能力
-        data = this.onResponse(messageType, data);
+        data = this.onResponse(data);
 
 
         const hasListeners = this.events.has(messageType, {
@@ -177,8 +177,9 @@ export default class BaseAsyncMessenger<C = any> {
         if (!reqInfo) return;
         this.store.remove(messageType, reqInfo);
         this.onSuccess(messageType, data);
+        const useResDataOnly = ("useResDataOnly" in (reqInfo.requestOptions || {})) ? reqInfo.requestOptions?.useResDataOnly : this.options.useResDataOnly;
         if (reqInfo) {
-            reqInfo.callback(reqInfo.context, data);
+            reqInfo.callback.call(reqInfo.context, useResDataOnly ? data.data : data);
         }
     };
 
