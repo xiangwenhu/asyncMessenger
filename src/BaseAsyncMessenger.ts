@@ -68,7 +68,7 @@ export default class BaseAsyncMessenger<C = any> {
         return this.ctx
     }
 
-    setContext(ctx: C) {
+    setContext(ctx: C | undefined = undefined) {
         this.ctx = ctx
     }
 
@@ -149,23 +149,29 @@ export default class BaseAsyncMessenger<C = any> {
         // 提供自定义助力数据的能力
         data = this.onResponse(messageType, data);
 
-        // 内置的成功处理
-        this.onBuiltInResponse(messageType, data, {
+
+        const hasListeners = this.events.has(messageType, {
             scope,
         });
+        if (hasListeners) {
+            // 内置的成功处理
+            this.onBuiltInResponse(messageType, data, {
+                scope,
+            });
+        }
+
+        const hasResponseId = !!responseId;
 
         const reqInfo = this.store.getOne(messageType, {
             scope,
             requestId: responseId,
         });
-
-        const isInHandlers = this.events.has(messageType);
         //  AsyncMessenger中没有，PEventMessenger中也没有, 并且开启相关的日志输出
-        if (!reqInfo && !isInHandlers && this.options.logUnhandledEvent) {
+        if (!reqInfo && !hasListeners && this.options.logUnhandledEvent) {
             this.onError();
-            console.warn(
-                `未找到category为${messageType},requestId${responseId}的回调信息`
-            );
+            const infos = [`type=${messageType}`, `scope=${scope}`];
+            if(hasResponseId) infos.push(`requestId=${responseId}`)
+            console.warn(`未找到 ${infos.join(", ")} 的回调信息`);
             return;
         }
         if (!reqInfo) return;
@@ -282,7 +288,7 @@ export default class BaseAsyncMessenger<C = any> {
             return data;
         }
         // TODO:: 这里可能被串改数据
-        this.events.emit(messageType, data, options);
+        this.events.emit(messageType, { ...data }, options);
         return data;
     }
 

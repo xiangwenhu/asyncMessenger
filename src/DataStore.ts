@@ -1,5 +1,5 @@
 import { MessageType, ReqInfo } from "./types";
-import { isSameScope } from "./utils/index";
+import { getValidStringProperty, isSameValue } from "./utils/index";
 
 type FindOptions = Partial<Pick<ReqInfo, "scope" | "requestId">>;
 
@@ -13,10 +13,8 @@ export default class DataStore<T extends ReqInfo = ReqInfo> {
         }
 
         this.map.get(type)!.push({
-            requestId: reqInfo.requestId,
+            ...reqInfo,
             reqTime: Date.now(),
-            callback: reqInfo.callback,
-            scope: reqInfo.scope,
         } as T);
     }
 
@@ -69,19 +67,12 @@ export default class DataStore<T extends ReqInfo = ReqInfo> {
         if (!reqInfos || reqInfos.length === 0) {
             return undefined;
         }
-        const hasRequestId =
-            typeof requestId === "string" && requestId.trim() !== "";
-        const hasScope = typeof scope === "string" && scope.trim() !== "";
 
         // 过滤scope
-        if (hasScope) {
-            reqInfos = reqInfos.filter((c) => isSameScope(c?.scope, scope));
-        }
+        reqInfos = reqInfos.filter((c) => isSameValue(c.scope, scope));
 
         // 过滤 requestId
-        if (hasRequestId) {
-            reqInfos = reqInfos.filter((c) => c.requestId === requestId);
-        }
+        reqInfos = reqInfos.filter((c) => isSameValue(c.requestId, requestId));
 
         return reqInfos;
     }
@@ -92,7 +83,8 @@ export default class DataStore<T extends ReqInfo = ReqInfo> {
     }
 
     has(messageType: MessageType, options: FindOptions = {}) {
-        return !!this.get(messageType, options);
+        const result = this.get(messageType, options);
+        return !!result && result.length > 0
     }
 
     hasType(messageType: MessageType) {

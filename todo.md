@@ -1,6 +1,6 @@
 
 ## 现存在的问题
-- [x] 区分addHandler和异步invoke的回调函数
+- [x] 区分addListener和异步invoke的回调函数
 - [x] 属性键支持 number 和 Symbol
 - [x] 装饰器，支持class (2025-02-26)
 ```typescript

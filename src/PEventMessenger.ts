@@ -1,5 +1,5 @@
 import DataStore from "./DataStore";
-import { ListenerOptions, MessageType } from "./types";
+import { ListenerOptions, MessageType, ReqInfo } from "./types";
 
 export interface IPEventMessenger<T = MessageType> {
     on<D = any>(type: T, fun: (data: D) => any, options?: ListenerOptions): any;
@@ -12,8 +12,12 @@ export interface IPEventMessenger<T = MessageType> {
     has(type: T, options?: ListenerOptions): boolean;
 }
 
+interface PReqInfo extends ReqInfo {
+    context?: any;
+}
+
 export default class PEventMessenger implements IPEventMessenger {
-    private store = new DataStore();
+    private store = new DataStore<PReqInfo>();
     /**
      * 可以处理多种类型的事件
      * @param type
@@ -30,6 +34,7 @@ export default class PEventMessenger implements IPEventMessenger {
         this.store.add(type, {
             callback: listener,
             scope: options.scope,
+            context: options.context
         });
     };
 
@@ -54,13 +59,13 @@ export default class PEventMessenger implements IPEventMessenger {
         options: ListenerOptions = {}
     ) => {
         const infos = this.store.get(type, options);
-        if (!Array.isArray(infos)) {
+        if (!Array.isArray(infos) || infos.length === 0) {
             return;
         }
 
         const bInfos = [...infos];
         bInfos.forEach((info) => {
-            info.callback(data);
+            info.callback.call(info.context, data);
         });
     };
 

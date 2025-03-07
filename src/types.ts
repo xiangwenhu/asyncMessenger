@@ -3,6 +3,7 @@ export type MessageType = Symbol | string | number;
 
 export interface ListenerOptions {
     scope?: string;
+    context?: any;
 }
 
 export interface BaseReqData<R = any> {
