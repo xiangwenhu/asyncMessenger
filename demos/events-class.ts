@@ -1,13 +1,9 @@
 import { BaseAsyncMessenger, BaseReqData, BaseResData, GlobalReqOptions } from "../src/index";
 import EventEmitter from "events";
-import { listener } from "../src/decorator"
 
 const emitter = new EventEmitter();
 
 class EmitterAsyncMessenger extends BaseAsyncMessenger {
-
-
-    private name = "mayName";
 
     constructor(options: GlobalReqOptions = {}) {
         super(options);
@@ -24,37 +20,13 @@ class EmitterAsyncMessenger extends BaseAsyncMessenger {
     protected request(data: BaseReqData) {
         emitter.emit("message-request", data);
     }
-
-    @listener({
-        type: "time"
-    })
-    timeListener(data: BaseResData) {
-        console.log("this.name", this.name);
-        console.log("time:data", data)
-    }
 }
 
 const emitterAsyncMessenger = new EmitterAsyncMessenger({
-    autoGenerateRequestId: true,
     autoActive: true
 });
 
 emitterAsyncMessenger.activate();
-
-
-// setInterval(() => {
-//     emitter.emit('message', {
-//         method: 'continuous-event',
-//         data: new Date().toLocaleTimeString()
-//     })
-// }, 3000)
-
-setInterval(() => {
-    emitter.emit('message', {
-        type: 'time',
-        data: new Date().toISOString()
-    })
-}, 3000)
 
 
 emitter.on("message-request", (data: BaseResData) => {
@@ -76,8 +48,15 @@ emitter.on("message-request", (data: BaseResData) => {
 
 emitterAsyncMessenger.invoke({
     method: "cccc",
-    data: 111
-}).then(res => console.log("res:", res))
+    data: 111,
+    scope: 'a'
+}).then(res => console.log("res scope a:", res))
+
+
+emitterAsyncMessenger.invoke({
+    method: "cccc",
+    data: 111,
+}).then(res => console.log("res scope:", res))
 
 
 emitterAsyncMessenger.invoke({

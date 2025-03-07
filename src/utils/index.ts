@@ -5,22 +5,12 @@ export function isType(obj: any, type: string) {
     return toString.call(obj) === `[object ${type}]`;
 }
 
-/* eslint-disable no-bitwise */
-/* eslint-disable no-shadow */
-export function hash(str = ""): number {
-    let hash = 0; let i; let chr; let
-        len;
-    if (str.length === 0) return hash;
-    for (i = 0, len = str.length; i < len; i++) {
-        chr = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + chr;
-        hash |= 0; // Convert to 32bit integer
-    }
-    return hash;
-}
-
 export function isFunction(fn: unknown): boolean {
     return typeof fn === 'function'
+}
+
+export function isObject(obj: any) {
+    return obj !== null && typeof obj === "object"
 }
 
 
@@ -75,15 +65,15 @@ export function hasOwnProperty(obj: any, property: PropertyKey): boolean {
 }
 
 
-export function isSameScope(scope1: string | undefined, scope2: string | undefined): boolean {
-    // TODO:
-    return  scope1 == scope2
+export function isSameValue(value1: any, value2: any): boolean {
+    if (value1 === null || value1 === undefined) return value1 == value2 || value1 === value2;
+    return value1 == value2
 }
 
 
 export function uuid() {
     var d = new Date().getTime();
-    if (typeof performance !== 'undefined' && typeof performance.now === 'function'){
+    if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
         d += performance.now(); //use high-precision timer if available
     }
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
@@ -91,4 +81,24 @@ export function uuid() {
         d = Math.floor(d / 16);
         return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
     });
+}
+
+export function getValidStringProperty<O = any>(obj: O, property: keyof typeof obj): {
+    has: boolean,
+    value: string | undefined
+} {
+    if (!isObject(obj)) return {
+        has: false,
+        value: undefined
+    };
+
+    let val = obj[property];
+    if (typeof val !== "string") return {
+        has: false,
+        value: undefined
+    }
+    return {
+        has: true,
+        value: val.trim()
+    }
 }
