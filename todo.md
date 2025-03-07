@@ -32,7 +32,9 @@ const Messenger = new BaseAsyncMessenger({
     }
 });
 ``` 
-- [ ] 支持context?，方便与外面搭建桥梁
+- [x] 支持ctx?，方便与外面搭建桥梁
+    异步中心可以通过构造函的第二个参数传递ctx，也可以通过实例方法setContext设置，可以通过 getContext方法获取。    
+    每个方法
 - [x] 支持once
   无需实现，实现本身就是每次调用添加回调。
 - [x] 支持scope，仅仅支持一个callback响应

@@ -1,9 +1,10 @@
-import { MessageType, ReqInfo } from "./types";
+import { ReqOptions } from "src";
+import { BaseReqData, MessageType, ReqInfo } from "./types";
 import { getValidStringProperty, isSameValue } from "./utils/index";
 
 type FindOptions = Partial<Pick<ReqInfo, "scope" | "requestId">>;
 
-export default class DataStore<T extends ReqInfo = ReqInfo> {
+export default class DataStore<T extends ReqInfo<BaseReqData, ReqOptions>> {
     private map = new Map<MessageType, T[]>();
 
     add(type: MessageType, reqInfo: T) {
@@ -14,11 +15,11 @@ export default class DataStore<T extends ReqInfo = ReqInfo> {
 
         this.map.get(type)!.push({
             ...reqInfo,
-            reqTime: Date.now(),
+            requestTime: Date.now(),
         } as T);
     }
 
-    remove(type: MessageType, reqInfo: T) {
+    remove(type: MessageType, reqInfo: Partial<T>) {
         const infos = this.map.get(type);
         if (!infos || infos.length === 0) {
             return undefined;
