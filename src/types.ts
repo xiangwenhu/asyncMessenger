@@ -1,10 +1,20 @@
 
 export type MessageType = Symbol | string | number;
 
-export interface ListenerOptions {
+interface BaseReqInfo {
+    /**
+     * scope，区分多个渠道
+     * 比如页面打开多个iframe，我们监听的是window的message的事件，
+     * 当多个iframe发送出消息时，屏蔽消息
+     */
     scope?: string;
+    /**
+     * 执行上下文，影响方法的this
+     */
     context?: any;
 }
+
+export type ListenerOptions = BaseReqInfo;
 
 export interface BaseReqData<R = any> {
     /**
@@ -37,12 +47,30 @@ export type BaseResData<S = any> = Omit<BaseReqData<S>, "requestId"> & {
 }
 
 
-export interface ReqInfo<D = any> {
+/**
+ * 请求信息
+ */
+export interface ReqInfo<RD = any, RO = any> extends BaseReqInfo {
+    /**
+     * 请求的唯一ID
+     */
     requestId?: string;
+    /**
+     * 回调函数
+     */
     callback: Function;
-    reqData?: D;
-    reqTime?: number;
-    scope?: string;
+    /**
+     * 请求的原始数据，外层的scope和requestID可能与其不一致
+     */
+    requestData: RD;
+    /**
+     * 请的原始选项
+     */
+    requestOptions: RO | undefined;
+    /**
+     * 请的时间
+     */
+    requestTime?: number;
 }
 
 export type Unsubscribe = () => void;
@@ -65,17 +93,18 @@ export interface GlobalReqOptions<R = any, S = any> {
      */
     clearTimeoutReq?: boolean;
     /**
-     * clearTimeoutReq开启后，过期多少时间的请求会被清理
-     */
-    expiredTime?: number;
-    /**
      * 启用日志
      */
     enableLog?: boolean;
     /**
+     *  允许使用默认返回值，请求超时会使用请求参数中的默认返回值
+     */
+    enableDefaultResponse?: boolean;
+    /**
      * 输出未处理的事件回调
      */
     logUnhandledEvent?: boolean;
+
     /**
      * 订阅, 即处理收到的消息
      */

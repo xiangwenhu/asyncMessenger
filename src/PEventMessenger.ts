@@ -12,12 +12,9 @@ export interface IPEventMessenger<T = MessageType> {
     has(type: T, options?: ListenerOptions): boolean;
 }
 
-interface PReqInfo extends ReqInfo {
-    context?: any;
-}
 
 export default class PEventMessenger implements IPEventMessenger {
-    private store = new DataStore<PReqInfo>();
+    private store = new DataStore<ReqInfo>();
     /**
      * 可以处理多种类型的事件
      * @param type
@@ -34,7 +31,9 @@ export default class PEventMessenger implements IPEventMessenger {
         this.store.add(type, {
             callback: listener,
             scope: options.scope,
-            context: options.context
+            context: options.context,
+            requestOptions: options,
+            requestData: undefined
         });
     };
 

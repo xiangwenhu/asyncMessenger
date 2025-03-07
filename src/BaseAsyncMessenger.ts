@@ -170,7 +170,7 @@ export default class BaseAsyncMessenger<C = any> {
         if (!reqInfo && !hasListeners && this.options.logUnhandledEvent) {
             this.onError();
             const infos = [`type=${messageType}`, `scope=${scope}`];
-            if(hasResponseId) infos.push(`requestId=${responseId}`)
+            if (hasResponseId) infos.push(`requestId=${responseId}`)
             console.warn(`未找到 ${infos.join(", ")} 的回调信息`);
             return;
         }
@@ -178,7 +178,7 @@ export default class BaseAsyncMessenger<C = any> {
         this.store.remove(messageType, reqInfo);
         this.onSuccess(messageType, data);
         if (reqInfo) {
-            reqInfo.callback(data);
+            reqInfo.callback(reqInfo.context, data);
         }
     };
 
@@ -186,15 +186,13 @@ export default class BaseAsyncMessenger<C = any> {
         data: BaseReqData<D>,
         reqOptions?: RequestOptions,
         ...args: any[]
-    ): Promise<BaseResData<RD> | undefined> {
+    ): Promise<BaseResData<RD> | RD | undefined> {
         this.statistics.reqCount++;
         const {
             timeout = 5000,
             sendOnly = false,
-            defaultRes = {
-                message: "请求超时",
-            },
-        } = reqOptions || {};
+            defaultRes
+        } = (reqOptions || {}) as RequestOptions;
 
         const tout = timeout || this.options.timeout;
         const messageType = this.getMethod<MessageType | undefined>(
@@ -225,15 +223,22 @@ export default class BaseAsyncMessenger<C = any> {
             run().then(() => {
                 console.log("请求超时:", messageType, data, requestId);
                 this.onTimeout();
+
+                const options = { requestId, scope: data.scope }
+                // 启用默认返回值
+                if (this.options.enableDefaultResponse) {
+                    const reqInfo = this.store.getOne(messageType, options);
+                    // 请求的选项中有定义默认返回值
+                    if (reqInfo?.requestOptions && ("defaultRes" in reqInfo.requestOptions)) {
+                        this.store.removeOneByOptions(messageType, options);
+                        return resolve(reqInfo.requestOptions.defaultRes);
+                    }
+                }
                 if (this.options.clearTimeoutReq) {
-                    this.store.removeOneByOptions(messageType, {
-                        requestId,
-                        scope: data.scope,
-                    });
+                    this.store.removeOneByOptions(messageType, options);
                 }
                 reject({
-                    message: "请求超时",
-                    ...(defaultRes || {}),
+                    message: "请求超时"
                 });
             });
 
@@ -245,6 +250,9 @@ export default class BaseAsyncMessenger<C = any> {
                     resolve(msg);
                 },
                 scope: data.scope,
+                context: this,
+                requestData: data,
+                requestOptions: reqOptions
             });
             // 调用
             request.call(this, data, ...args);
