@@ -1,6 +1,6 @@
-import { isAsyncFunction, isNormalFunction } from "../utils/function";
-import { hasOwnProperty } from "../utils/index";
+import PEventMessenger from "../PEventMessenger";
 import { ListenerOptions } from "../types";
+import { isAsyncFunction, isNormalFunction } from "../utils/function";
 
 interface Options {
     type?: string;
@@ -10,9 +10,8 @@ interface Options {
 
 interface Messenger {
     addListener: Function;
+    events: PEventMessenger
 }
-
-const SymbolHasProxyMethod = Symbol("HasProxyMethod")
 
 export function listener(options: Options = {}) {
     return function (
@@ -40,20 +39,17 @@ export function listener(options: Options = {}) {
             const { type = target.name } = options;
             // this: class instance
             const classInstance: Messenger = this;
-            if (hasOwnProperty(target, SymbolHasProxyMethod)) {
-                return console.warn(`${target?.name} 已添加装饰listener, 无需重复添加`);
-            }
-            // 
-            Object.defineProperty(target, SymbolHasProxyMethod, {
-                value: true,
-                enumerable: false
-            })
-
 
             const listenerOptions: ListenerOptions = {
                 scope: options.scope,
                 context: ('context' in options) ? options.context : classInstance
             };
+
+            if (classInstance.events.has(type, {
+                scope: options.scope
+            })) {
+                return console.warn(`${target?.name} 已添加装饰listener, 无需重复添加`);
+            }
 
             classInstance.addListener(type, target, listenerOptions);
         });

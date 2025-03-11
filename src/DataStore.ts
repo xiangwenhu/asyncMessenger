@@ -1,7 +1,7 @@
 import { BaseReqData, MessageType, ReqInfo, RequestOptions } from "./types";
 import { isSameValue } from "./utils/index";
 
-type FindOptions = Partial<Pick<ReqInfo, "scope" | "requestId">>;
+export type FindOptions = Partial<Pick<ReqInfo, "scope" | "requestId">>;
 
 export default class DataStore<T extends ReqInfo<BaseReqData, RequestOptions>> {
     private map = new Map<MessageType, T[]>();
