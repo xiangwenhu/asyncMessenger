@@ -215,7 +215,7 @@ export default class BaseAsyncMessenger<C = any> {
         // 只发不收
         if (sendOnly) {
             request.call(this, data, requestId, ...args);
-            return Promise.resolve(undefined);
+            return Promise.resolve(void 0);
         }
 
         return new Promise((resolve, reject) => {

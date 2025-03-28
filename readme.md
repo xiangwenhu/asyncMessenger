@@ -1,11 +1,18 @@
 
 ## 摘要
-传统基于事件通信转Promise通用方案。支持
-* EventEmitter 类别
-* MQTT, socket.io,
+传统基于事件通信转Promise通用方案。
+
+支持模式：
+* 有发有收
+* 只发不收
+* 只收不发
+
+支持场景：
+* EventEmitter 等
+* MQTT, socket.io 等
 * iframe
 * webview
-* 等等场景。
+* 各种 **端** 到 **端** 场景。
 
 
 ## 依赖
@@ -54,40 +61,31 @@ setInterval(() => {
     })
 }, 3000)
 
-
 emitter.on("message-request", (data: BaseReqData) => {
-
     // 单向的，不回发消息
-    if (data.method === "oneway") {
+    if (data.method === "oneWay") {
         return;
     }
-
     setTimeout(() => {
         emitter.emit("message", {
             method: data.method,
             data: `${data.method}--- data`
         })
     }, 3000)
-
 })
-
 
 export default emitter;
 ```
 
 messenger.js
 ```js
-import { BaseAsyncMessenger, BaseReqData, GlobalReqOptions } from "async-messenger-js";
+import { BaseAsyncMessenger, BaseReqData, BaseResData, GlobalReqOptions, listener } from "async-messenger-js";
 import emitter from "./events";
-
-type RequestData  = BaseReqData;
-type ResponseData = RequestData;
 
 class EmitterAsyncMessenger extends BaseAsyncMessenger {
     constructor(options: GlobalReqOptions = {}) {
         super(options);
     }
-
     override subscribe() {
         console.log("WebViewBridge: subscribe");
         emitter.on("message", this.onMessage);
@@ -96,8 +94,17 @@ class EmitterAsyncMessenger extends BaseAsyncMessenger {
         }
     }
 
-    protected request(data: RequestData) {
+    protected request(data: BaseReqData) {
         emitter.emit("message-request", data);
+    }
+
+    /**
+     * 被动监听
+     * @param data 
+     */
+    @listener({ type: "continuous-event" })
+    continuousEvent(data: BaseResData) {
+        console.log("continuous-event:", data)
     }
 }
 
@@ -109,8 +116,7 @@ index.js
 ```js
 import messenger from "./messenger";
 
-asyncMessenger.activate();
-
+messenger.activate();
 
 messenger.invoke({
     method: "cccc",
@@ -119,17 +125,20 @@ messenger.invoke({
 
 
 messenger.invoke({
-    method: "oneway",
+    method: "oneWay",
     data: 111
 }, {
     sendOnly: true,
-}).then(res => console.log("oneway request res:", res))
+}).then(res => console.log("oneWay request res:", res))
 
-
-messenger.addListener("continuous-event", function onEvent(data) {
-    console.log("continuous-event:", data);
-})
-
+// 输出：
+// WebViewBridge: subscribe
+// oneWay request res: undefined
+// continuous-event: { method: 'continuous-event', data: '20:35:29' }
+// res: { method: 'cccc', data: 'cccc--- data' }
+// continuous-event: { method: 'continuous-event', data: '20:35:32' }
+// continuous-event: { method: 'continuous-event', data: '20:35:35' }
+// continuous-event: { method: 'continuous-event', data: '20:35:38' }
 
 ```
 
