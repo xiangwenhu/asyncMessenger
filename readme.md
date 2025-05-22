@@ -22,7 +22,7 @@
 
 
 ## 流程和原理图
-![流程和原理图](./docs/images/process.png)
+![流程和原理图](./docs/images/async-message-api-process.png)
 
 ## 源码结构说明
 ```
